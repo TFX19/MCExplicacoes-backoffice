@@ -35,12 +35,37 @@ const EMPTY_FORM = {
   notas: "",
 };
 
-// Converte um string "YYYY-MM-DDTHH:mm" (hora local) para ISO UTC
+// Converte um string "YYYY-MM-DDTHH:mm" (hora em Lisboa) para ISO UTC
 function localToUtcIso(localStr) {
   if (!localStr) return localStr;
-  const d = new Date(localStr);
-  const offsetMs = d.getTimezoneOffset() * 60000;
-  return new Date(d.getTime() + offsetMs).toISOString();
+  
+  // Interpreta o input como hora em Lisboa
+  // Primeiro, usa como se fosse UTC para calcular o offset de Lisboa
+  const asUtc = new Date(localStr + 'Z');
+  
+  // Formata essa hora UTC como se fosse em Lisboa
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Lisbon",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  
+  const parts = formatter.formatToParts(asUtc);
+  const get = (type) => parts.find((p) => p.type === type)?.value ?? "00";
+  const formatted = `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`;
+  
+  // Calcula o offset entre o UTC assumido e o que Lisboa teria
+  const parsedDate = new Date(formatted + 'Z');
+  const offset = asUtc.getTime() - parsedDate.getTime();
+  
+  // Aplica o offset ao input original para obter a hora UTC correcta
+  const utcTime = new Date(localStr + 'Z');
+  return new Date(utcTime.getTime() + offset).toISOString();
 }
 
 // Converte uma data UTC para string "YYYY-MM-DDTHH:mm" no timezone de Lisboa
