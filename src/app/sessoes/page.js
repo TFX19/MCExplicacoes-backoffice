@@ -35,6 +35,44 @@ const EMPTY_FORM = {
   notas: "",
 };
 
+// Converte um string "YYYY-MM-DDTHH:mm" (hora local) para ISO UTC
+function localToUtcIso(localStr) {
+  if (!localStr) return localStr;
+  const d = new Date(localStr);
+  const offsetMs = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() + offsetMs).toISOString();
+}
+
+// Converte uma data UTC para string "YYYY-MM-DDTHH:mm" no timezone de Lisboa
+function utcToLocalInput(utcStr) {
+  if (!utcStr) return "";
+  const d = new Date(utcStr);
+  // Formata em pt-PT com timezone de Lisboa e extrai data+hora
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Lisbon",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
+  const get = (type) => parts.find((p) => p.type === type)?.value ?? "00";
+  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+}
+
+// Formata data para mostrar na tabela
+function formatDataHora(utcStr) {
+  return new Date(utcStr).toLocaleString("pt-PT", {
+    timeZone: "Europe/Lisbon",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function SessoesPage() {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -81,13 +119,10 @@ export default function SessoesPage() {
   }
 
   function openEditar(sessao) {
-    const dt = new Date(sessao.dataHora);
-    const offset = dt.getTimezoneOffset() * 60000;
-    const local = new Date(dt - offset).toISOString().slice(0, 16);
     setForm({
       alunoId: sessao.alunoId,
       materiaId: sessao.materiaId,
-      dataHora: local,
+      dataHora: utcToLocalInput(sessao.dataHora), // UTC → hora Lisboa no input
       duracaoMin: sessao.duracaoMin,
       local: sessao.local ?? "online",
       estado: sessao.estado,
@@ -105,16 +140,15 @@ export default function SessoesPage() {
     setSaving(true);
     setError("");
     try {
+      const payload = {
+        ...form,
+        duracaoMin: Number(form.duracaoMin),
+        dataHora: localToUtcIso(form.dataHora), // hora Lisboa → UTC
+      };
       if (modal === "criar") {
-        await sessoesApi.criar({
-          ...form,
-          duracaoMin: Number(form.duracaoMin),
-        });
+        await sessoesApi.criar(payload);
       } else {
-        await sessoesApi.atualizar(modal.id, {
-          ...form,
-          duracaoMin: Number(form.duracaoMin),
-        });
+        await sessoesApi.atualizar(modal.id, payload);
       }
       setModal(null);
       load();
@@ -137,15 +171,7 @@ export default function SessoesPage() {
     {
       key: "dataHora",
       label: "Data / Hora",
-      render: (r) =>
-        new Date(r.dataHora).toLocaleString("pt-PT", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "Europe/Lisbon",
-        }),
+      render: (r) => formatDataHora(r.dataHora),
     },
     {
       key: "duracaoMin",
