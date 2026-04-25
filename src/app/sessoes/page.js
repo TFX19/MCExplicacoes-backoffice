@@ -1,115 +1,164 @@
-'use client'
-import { useEffect, useState, useCallback } from 'react'
-import { sessoesApi, alunosApi, materiasApi } from '@/lib/api'
-import { Table, Badge, Modal, PageHeader, Field, Select, Empty } from '@/components/ui'
-import { Plus, Trash2 } from 'lucide-react'
+"use client";
+import { useEffect, useState, useCallback } from "react";
+import { sessoesApi, alunosApi, materiasApi } from "@/lib/api";
+import {
+  Table,
+  Badge,
+  Modal,
+  PageHeader,
+  Field,
+  Select,
+  Empty,
+} from "@/components/ui";
+import { Plus, Trash2 } from "lucide-react";
 
 const ESTADOS = [
-  { value: 'agendada',  label: 'Agendada' },
-  { value: 'realizada', label: 'Realizada' },
-  { value: 'cancelada', label: 'Cancelada' },
-  { value: 'falta',     label: 'Falta' },
-]
+  { value: "agendada", label: "Agendada" },
+  { value: "realizada", label: "Realizada" },
+  { value: "cancelada", label: "Cancelada" },
+  { value: "falta", label: "Falta" },
+];
 
 const LOCAIS = [
-  { value: 'online',          label: 'Online' },
-  { value: 'casa do aluno',   label: 'Casa do aluno' },
-  { value: 'minha casa',      label: 'Minha casa' },
-]
+  { value: "online", label: "Online" },
+  { value: "casa do aluno", label: "Casa do aluno" },
+  { value: "minha casa", label: "Minha casa" },
+];
 
 const EMPTY_FORM = {
-  alunoId: '', materiaId: '', dataHora: '', duracaoMin: 60,
-  local: 'online', estado: 'agendada', notas: '',
-}
+  alunoId: "",
+  materiaId: "",
+  dataHora: "",
+  duracaoMin: 60,
+  local: "online",
+  estado: "agendada",
+  notas: "",
+};
 
 export default function SessoesPage() {
-  const [items, setItems]       = useState([])
-  const [total, setTotal]       = useState(0)
-  const [loading, setLoading]   = useState(true)
-  const [filtroEstado, setFiltro] = useState('')
-  const [alunos, setAlunos]     = useState([])
-  const [materias, setMaterias] = useState([])
-  const [modal, setModal]       = useState(null)
-  const [form, setForm]         = useState(EMPTY_FORM)
-  const [saving, setSaving]     = useState(false)
-  const [error, setError]       = useState('')
+  const [items, setItems] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [filtroEstado, setFiltro] = useState("");
+  const [alunos, setAlunos] = useState([]);
+  const [materias, setMaterias] = useState([]);
+  const [modal, setModal] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const load = useCallback(async (estado = filtroEstado) => {
-    setLoading(true)
-    const params = { limit: 50 }
-    if (estado) params.estado = estado
-    const res = await sessoesApi.listar(params).catch(() => ({ data: [], total: 0 }))
-    setItems(res.data ?? [])
-    setTotal(res.total ?? 0)
-    setLoading(false)
-  }, [filtroEstado])
+  const load = useCallback(
+    async (estado = filtroEstado) => {
+      setLoading(true);
+      const params = { limit: 50 };
+      if (estado) params.estado = estado;
+      const res = await sessoesApi
+        .listar(params)
+        .catch(() => ({ data: [], total: 0 }));
+      setItems(res.data ?? []);
+      setTotal(res.total ?? 0);
+      setLoading(false);
+    },
+    [filtroEstado],
+  );
 
   useEffect(() => {
-    load()
-    alunosApi.listar({ limit: 200 }).then(r => setAlunos(r.data ?? [])).catch(() => {})
-    materiasApi.listar().then(setMaterias).catch(() => {})
-  }, [])
+    load();
+    alunosApi
+      .listar({ limit: 200 })
+      .then((r) => setAlunos(r.data ?? []))
+      .catch(() => {});
+    materiasApi
+      .listar()
+      .then(setMaterias)
+      .catch(() => {});
+  }, []);
 
   function openCriar() {
-    setForm(EMPTY_FORM)
-    setError('')
-    setModal('criar')
+    setForm(EMPTY_FORM);
+    setError("");
+    setModal("criar");
   }
 
   function openEditar(sessao) {
-    const dt = new Date(sessao.dataHora)
-    const local = dt.toISOString().slice(0, 16)
+    const dt = new Date(sessao.dataHora);
+    const offset = dt.getTimezoneOffset() * 60000;
+    const local = new Date(dt - offset).toISOString().slice(0, 16);
     setForm({
-      alunoId:    sessao.alunoId,
-      materiaId:  sessao.materiaId,
-      dataHora:   local,
+      alunoId: sessao.alunoId,
+      materiaId: sessao.materiaId,
+      dataHora: local,
       duracaoMin: sessao.duracaoMin,
-      local:      sessao.local ?? 'online',
-      estado:     sessao.estado,
-      notas:      sessao.notas ?? '',
-    })
-    setError('')
-    setModal(sessao)
+      local: sessao.local ?? "online",
+      estado: sessao.estado,
+      notas: sessao.notas ?? "",
+    });
+    setError("");
+    setModal(sessao);
   }
 
   async function handleSave() {
     if (!form.alunoId || !form.materiaId || !form.dataHora) {
-      setError('Aluno, matéria e data são obrigatórios.')
-      return
+      setError("Aluno, matéria e data são obrigatórios.");
+      return;
     }
-    setSaving(true)
-    setError('')
+    setSaving(true);
+    setError("");
     try {
-      if (modal === 'criar') {
-        await sessoesApi.criar({ ...form, duracaoMin: Number(form.duracaoMin) })
+      if (modal === "criar") {
+        await sessoesApi.criar({
+          ...form,
+          duracaoMin: Number(form.duracaoMin),
+        });
       } else {
-        await sessoesApi.atualizar(modal.id, { ...form, duracaoMin: Number(form.duracaoMin) })
+        await sessoesApi.atualizar(modal.id, {
+          ...form,
+          duracaoMin: Number(form.duracaoMin),
+        });
       }
-      setModal(null)
-      load()
+      setModal(null);
+      load();
     } catch (e) {
-      setError(e.message)
+      setError(e.message);
     }
-    setSaving(false)
+    setSaving(false);
   }
 
   async function handleEliminar(id) {
-    if (!confirm('Eliminar esta sessão?')) return
-    await sessoesApi.eliminar(id).catch(() => {})
-    setModal(null)
-    load()
+    if (!confirm("Eliminar esta sessão?")) return;
+    await sessoesApi.eliminar(id).catch(() => {});
+    setModal(null);
+    load();
   }
 
   const cols = [
-    { key: 'aluno',    label: 'Aluno',    render: r => r.aluno?.nome ?? '—' },
-    { key: 'materia',  label: 'Matéria',  render: r => r.materia?.nome ?? '—' },
-    { key: 'dataHora', label: 'Data / Hora', render: r =>
-      new Date(r.dataHora).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    { key: "aluno", label: "Aluno", render: (r) => r.aluno?.nome ?? "—" },
+    { key: "materia", label: "Matéria", render: (r) => r.materia?.nome ?? "—" },
+    {
+      key: "dataHora",
+      label: "Data / Hora",
+      render: (r) =>
+        new Date(r.dataHora).toLocaleString("pt-PT", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Europe/Lisbon",
+        }),
     },
-    { key: 'duracaoMin', label: 'Duração', render: r => `${r.duracaoMin} min` },
-    { key: 'local',    label: 'Local' },
-    { key: 'estado',   label: 'Estado',   render: r => <Badge estado={r.estado} /> },
-  ]
+    {
+      key: "duracaoMin",
+      label: "Duração",
+      render: (r) => `${r.duracaoMin} min`,
+    },
+    { key: "local", label: "Local" },
+    {
+      key: "estado",
+      label: "Estado",
+      render: (r) => <Badge estado={r.estado} />,
+    },
+  ];
 
   return (
     <div className="p-8">
@@ -125,17 +174,20 @@ export default function SessoesPage() {
 
       {/* Filtros estado */}
       <div className="flex gap-3 mb-5 flex-wrap">
-        {['', ...ESTADOS.map(e => e.value)].map(e => (
+        {["", ...ESTADOS.map((e) => e.value)].map((e) => (
           <button
             key={e}
-            onClick={() => { setFiltro(e); load(e) }}
+            onClick={() => {
+              setFiltro(e);
+              load(e);
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               filtroEstado === e
-                ? 'bg-gray-900 text-white'
-                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                ? "bg-gray-900 text-white"
+                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
             }`}
           >
-            {e === '' ? 'Todas' : e.charAt(0).toUpperCase() + e.slice(1)}
+            {e === "" ? "Todas" : e.charAt(0).toUpperCase() + e.slice(1)}
           </button>
         ))}
       </div>
@@ -155,24 +207,28 @@ export default function SessoesPage() {
       <Modal
         open={!!modal}
         onClose={() => setModal(null)}
-        title={modal === 'criar' ? 'Nova sessão' : 'Editar sessão'}
+        title={modal === "criar" ? "Nova sessão" : "Editar sessão"}
       >
         <div className="space-y-4">
-          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Aluno" required>
               <Select
                 value={form.alunoId}
-                onChange={v => setForm(f => ({ ...f, alunoId: v }))}
-                options={alunos.map(a => ({ value: a.id, label: a.nome }))}
+                onChange={(v) => setForm((f) => ({ ...f, alunoId: v }))}
+                options={alunos.map((a) => ({ value: a.id, label: a.nome }))}
               />
             </Field>
             <Field label="Matéria" required>
               <Select
                 value={form.materiaId}
-                onChange={v => setForm(f => ({ ...f, materiaId: v }))}
-                options={materias.map(m => ({ value: m.id, label: m.nome }))}
+                onChange={(v) => setForm((f) => ({ ...f, materiaId: v }))}
+                options={materias.map((m) => ({ value: m.id, label: m.nome }))}
               />
             </Field>
             <Field label="Data e hora" required>
@@ -180,7 +236,9 @@ export default function SessoesPage() {
                 type="datetime-local"
                 className="input"
                 value={form.dataHora}
-                onChange={e => setForm(f => ({ ...f, dataHora: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, dataHora: e.target.value }))
+                }
               />
             </Field>
             <Field label="Duração (min)">
@@ -190,13 +248,15 @@ export default function SessoesPage() {
                 min={15}
                 step={15}
                 value={form.duracaoMin}
-                onChange={e => setForm(f => ({ ...f, duracaoMin: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, duracaoMin: e.target.value }))
+                }
               />
             </Field>
             <Field label="Local">
               <Select
                 value={form.local}
-                onChange={v => setForm(f => ({ ...f, local: v }))}
+                onChange={(v) => setForm((f) => ({ ...f, local: v }))}
                 options={LOCAIS}
                 placeholder=""
               />
@@ -204,7 +264,7 @@ export default function SessoesPage() {
             <Field label="Estado">
               <Select
                 value={form.estado}
-                onChange={v => setForm(f => ({ ...f, estado: v }))}
+                onChange={(v) => setForm((f) => ({ ...f, estado: v }))}
                 options={ESTADOS}
                 placeholder=""
               />
@@ -217,25 +277,38 @@ export default function SessoesPage() {
               rows={3}
               placeholder="Sumário da sessão, pontos trabalhados…"
               value={form.notas}
-              onChange={e => setForm(f => ({ ...f, notas: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, notas: e.target.value }))
+              }
             />
           </Field>
 
           <div className="flex items-center justify-between pt-2">
-            {modal !== 'criar' ? (
-              <button onClick={() => handleEliminar(modal.id)} className="btn-danger">
+            {modal !== "criar" ? (
+              <button
+                onClick={() => handleEliminar(modal.id)}
+                className="btn-danger"
+              >
                 <Trash2 size={14} /> Eliminar
               </button>
-            ) : <div />}
+            ) : (
+              <div />
+            )}
             <div className="flex gap-2">
-              <button onClick={() => setModal(null)} className="btn-secondary">Cancelar</button>
-              <button onClick={handleSave} disabled={saving} className="btn-primary">
-                {saving ? 'A guardar…' : 'Guardar'}
+              <button onClick={() => setModal(null)} className="btn-secondary">
+                Cancelar
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="btn-primary"
+              >
+                {saving ? "A guardar…" : "Guardar"}
               </button>
             </div>
           </div>
         </div>
       </Modal>
     </div>
-  )
+  );
 }
