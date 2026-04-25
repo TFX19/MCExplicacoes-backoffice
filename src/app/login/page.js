@@ -34,7 +34,7 @@ export default function LoginPage() {
         {/* Logo / título */}
         <div className="mb-8 text-center">
           <div className="w-10 h-10 bg-gray-900 rounded-xl mx-auto mb-4 flex items-center justify-center">
-            <span className="text-white text-lg font-semibold">E</span>
+            <span className="text-white text-lg font-semibold">MC</span>
           </div>
           <h1 className="text-xl font-semibold text-gray-900">Backoffice</h1>
           <p className="text-sm text-gray-500 mt-1">
