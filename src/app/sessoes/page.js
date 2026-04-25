@@ -20,9 +20,9 @@ const ESTADOS = [
 ];
 
 const LOCAIS = [
+  { value: "escritório", label: "Escritório" },
   { value: "online", label: "Online" },
   { value: "casa do aluno", label: "Casa do aluno" },
-  { value: "minha casa", label: "Minha casa" },
 ];
 
 const EMPTY_FORM = {

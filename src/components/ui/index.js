@@ -1,5 +1,6 @@
 'use client'
-import { X } from 'lucide-react'
+import { useState } from 'react'
+import { X, Trash2 } from 'lucide-react'
 
 // ── Badge ─────────────────────────────────────────────────────
 const badgeStyles = {
@@ -24,38 +25,107 @@ export function Badge({ estado }) {
 }
 
 // ── Table ─────────────────────────────────────────────────────
-export function Table({ columns, data, onRowClick }) {
+export function Table({ columns, data, onRowClick, onDelete }) {
+  const [selectedIds, setSelectedIds] = useState(new Set())
+
+  const toggleRow = (id, e) => {
+    e.stopPropagation()
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
+  const toggleAll = (e) => {
+    e.stopPropagation()
+    if (selectedIds.size === data.length) {
+      setSelectedIds(new Set())
+    } else {
+      const allIds = new Set(data.map((row, i) => row.id ?? i))
+      setSelectedIds(allIds)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!onDelete || selectedIds.size === 0) return
+    await onDelete(Array.from(selectedIds))
+    setSelectedIds(new Set())
+  }
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-100">
-            {columns.map(col => (
-              <th
-                key={col.key}
-                className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide"
-              >
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-50">
-          {data.map((row, i) => (
-            <tr
-              key={row.id ?? i}
-              onClick={() => onRowClick?.(row)}
-              className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''} transition-colors`}
-            >
+    <div>
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <span className="text-sm text-blue-700 font-medium">{selectedIds.size} selecionado(s)</span>
+          <button
+            onClick={handleDelete}
+            className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Trash2 size={16} />
+            Eliminar
+          </button>
+        </div>
+      )}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-100">
+              {onDelete && (
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === data.length && data.length > 0}
+                    onChange={toggleAll}
+                    className="w-4 h-4 cursor-pointer rounded border-gray-300"
+                  />
+                </th>
+              )}
               {columns.map(col => (
-                <td key={col.key} className="px-4 py-3 text-gray-700">
-                  {col.render ? col.render(row) : row[col.key] ?? '—'}
-                </td>
+                <th
+                  key={col.key}
+                  className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide"
+                >
+                  {col.label}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {data.map((row, i) => {
+              const rowId = row.id ?? i
+              const isSelected = selectedIds.has(rowId)
+              return (
+                <tr
+                  key={rowId}
+                  onClick={() => onRowClick?.(row)}
+                  className={`${
+                    isSelected ? 'bg-blue-50' : onDelete ? 'hover:bg-gray-50' : 'hover:bg-gray-50'
+                  } ${onRowClick ? 'cursor-pointer' : ''} transition-colors`}
+                >
+                  {onDelete && (
+                    <td className="w-10 px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => toggleRow(rowId, e)}
+                        className="w-4 h-4 cursor-pointer rounded border-gray-300"
+                      />
+                    </td>
+                  )}
+                  {columns.map(col => (
+                    <td key={col.key} className="px-4 py-3 text-gray-700">
+                      {col.render ? col.render(row) : row[col.key] ?? '—'}
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
