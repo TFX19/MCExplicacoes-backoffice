@@ -183,11 +183,27 @@ export default function SessoesPage() {
     setSaving(false);
   }
 
-  async function handleEliminar(id) {
-    if (!confirm("Eliminar esta sessão?")) return;
-    await sessoesApi.eliminar(id).catch(() => {});
-    setModal(null);
-    load();
+  async function handleEliminar(idOrIds) {
+    // Se for array (múltiplos), pede confirmação geral
+    if (Array.isArray(idOrIds)) {
+      if (!confirm(`Eliminar ${idOrIds.length} sessão(ões)? Esta ação não pode ser desfeita.`)) return;
+      try {
+        await sessoesApi.eliminarMultiplos(idOrIds);
+        load();
+      } catch (e) {
+        alert(`Erro ao eliminar: ${e.message}`);
+      }
+    } else {
+      // Se for ID único (do modal), pede confirmação individual
+      if (!confirm("Eliminar esta sessão?")) return;
+      try {
+        await sessoesApi.eliminar(idOrIds);
+        setModal(null);
+        load();
+      } catch (e) {
+        alert(`Erro ao eliminar: ${e.message}`);
+      }
+    }
   }
 
   const cols = [
@@ -251,7 +267,12 @@ export default function SessoesPage() {
         ) : items.length === 0 ? (
           <Empty message="Sem sessões" />
         ) : (
-          <Table columns={cols} data={items} onRowClick={openEditar} />
+          <Table
+            columns={cols}
+            data={items}
+            onRowClick={openEditar}
+            onDelete={handleEliminar}
+          />
         )}
       </div>
 

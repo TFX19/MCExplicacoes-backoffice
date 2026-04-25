@@ -61,6 +61,11 @@ export const sessoesApi = {
   atualizar: (id, data) =>
     apiFetch(`/sessoes/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   eliminar: (id) => apiFetch(`/sessoes/${id}`, { method: "DELETE" }),
+  eliminarMultiplos: (ids) =>
+    apiFetch("/sessoes/lote", {
+      method: "DELETE",
+      body: JSON.stringify({ ids }),
+    }),
 };
 
 // ── Pagamentos ───────────────────────────────────────────────
