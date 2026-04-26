@@ -46,8 +46,11 @@ export default function InscricoesPage() {
     setSaving(true)
     try {
       await inscricoesApi.converter(selected.id)
-      setMsg('Aluno criado com sucesso!')
-      setSelected(s => ({ ...s, estado: 'convertido' }))
+      // Remove a inscrição da tabela após converter com sucesso
+      setItems(items.filter(i => i.id !== selected.id))
+      setTotal(t => t - 1)
+      setSelected(null)
+      // Recarrega para garantir consistência com o servidor
       load()
     } catch (e) {
       setMsg('Erro: ' + e.message)
